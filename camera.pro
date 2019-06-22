@@ -20,13 +20,16 @@ SOURCES += main.cpp\
     v4l2_example.c \
     realtimeshow.cpp \
     videorecoder.cpp \
-    powerpiont.cpp
+    powerpiont.cpp \
+    qttoopencv.cpp
 
 HEADERS  += widget.h \
     v4l2_example.h \
     realtimeshow.h \
     videorecoder.h \
-    powerpiont.h
+    powerpiont.h \
+    qttoopencv.h \
+    huffman.h
 
 FORMS    += widget.ui
 
@@ -38,6 +41,6 @@ FORMS    += widget.ui
 #/usr/local/include/x264/ \
 #/usr/local/include/ffmpeg/libavutil
 
-#LIBS += /opt/arm/opencv/opencv3-arm/lib/lib*
+LIBS += /opt/arm/opencv/opencv3-arm/lib/lib*
 #LIBS += /opt/webcam/ffmpeg/lib/lib*
 #LIBS += /opt/webcam/x264/lib/libx264.so.157

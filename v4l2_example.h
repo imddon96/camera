@@ -11,7 +11,7 @@ extern "C" {
 #define FILE_VIDEO      "/dev/video0"
 #define IMAGE           "./img/demo"
 
-#define IMAGEWIDTH      640
+#define IMAGEWIDTH      648
 #define IMAGEHEIGHT     480
 
 #define FRAME_NUM       1  //4
@@ -24,7 +24,8 @@ extern struct buffer
     unsigned int length;
     long long int timestamp;
 } *buffers;
-
+extern unsigned char* gInterfaceBuf;
+extern int gLength;
 extern int loop;
 extern int v4l2_init(void);
 extern int v4l2_mem_ops(void);

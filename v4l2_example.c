@@ -12,16 +12,72 @@
 
 
 #include "v4l2_example.h"
-
+#include "huffman.h"
 
 int fd;
 struct v4l2_buffer buf;
 
 struct buffer *buffers;
+unsigned char *huffman_buf = NULL;
+unsigned char *gInterfaceBuf = NULL;
+int gLength = 0;
 
 void v4l2_print(){
     printf("yes");
 }
+
+static int is_huffman(unsigned char *buf) {
+    int i = 0;
+    unsigned char *pbuf = buf;
+    while (((pbuf[0] << 8) | pbuf[1]) != 0xffda ) {
+        if (i++ > 2048) {
+            return 0;
+        }
+        if(((pbuf[0] << 8) | pbuf[1]) == 0xffc4 ) {
+            return 1;
+        }
+        pbuf++;
+    }
+    return 0;
+}
+
+static unsigned char* seeifbuf_huffman(unsigned char* out_buf, unsigned char* in_buf,int buf_size){
+    int pos = 0;
+    int size_start = 0;
+    unsigned char *pdeb = in_buf;
+    unsigned char *pcur = in_buf;
+    unsigned char *plimit = in_buf + buf_size;
+    unsigned char *jpeg_buf = out_buf;
+
+
+
+    if (is_huffman(in_buf)) {
+
+        return in_buf;
+    } else {
+
+        printf("no hufuman\n");
+
+        while(  ((pcur[0] << 8) | pcur[1]) != 0xffc0 && (pcur < plimit) ) {
+            pcur ++;
+        }
+
+        if (pcur < plimit ) {
+            size_start = pcur - pdeb;
+            memcpy(jpeg_buf,in_buf,size_start);
+            pos += size_start;
+
+            memcpy(jpeg_buf+pos,dht_data,sizeof(dht_data));
+            pos += sizeof(dht_data);
+
+            memcpy(jpeg_buf + pos, pcur,buf_size - size_start) ;
+            return out_buf;
+        }
+    }
+    return in_buf;
+
+}
+
 
 int v4l2_init()
 {
@@ -145,7 +201,11 @@ int v4l2_mem_ops() {
         printf ("out of memory!\n");
         return FALSE;
     }
-    
+
+    gLength = IMAGEWIDTH*IMAGEHEIGHT + sizeof(dht_data) + 10;
+    huffman_buf = malloc(gLength);
+
+
     // 进行内存映射
     for (n_buffers = 0; n_buffers < FRAME_NUM; n_buffers++) {
         buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -188,8 +248,15 @@ int v4l2_frame_process()
         //出队
         buf.index = n_buffers;
         ioctl(fd, VIDIOC_DQBUF, &buf);
+
+
+
         ioctl(fd, VIDIOC_QBUF, &buf);
     }
+
+
+    gInterfaceBuf =  seeifbuf_huffman(huffman_buf,buffers[0].start,buffers[0].length);
+
     return TRUE;    
 }
 
@@ -209,7 +276,7 @@ int v4l2_release() {
     
     //释放自己申请的内存
     free(buffers);
-    
+    free(huffman_buf);
     //关闭设备
     close(fd);
     return TRUE;

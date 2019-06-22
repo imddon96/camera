@@ -103,8 +103,9 @@ void Widget::take(){
     // 显示缩略图到label2上
     QPixmap pix;
     QByteArray aa ;
-    aa.append((const char *) buffers[0].start,IMAGEWIDTH*IMAGEHEIGHT);
+    aa.append((const char *) gInterfaceBuf,gLength);
     pix.loadFromData(aa);
+    pix.scaled(50,50);
     ui->label2->setVisible(true);
     ui->label2->setPixmap(pix);
 

@@ -35,6 +35,7 @@ void PowerPiont::run(){
             break;
         }
         msleep(20);
+        pix = pix.scaled(320,240);
         emit sig_GetOnePicture(pix);
     }
     this->realTimeShow->isReplay = false;

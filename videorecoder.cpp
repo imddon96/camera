@@ -5,6 +5,14 @@
 #include <QString>
 #include <QDebug>
 #include <QQueue>
+
+
+#include <opencv2/opencv.hpp>
+#include <qttoopencv.h>
+
+using namespace QtToOpencv;
+using namespace cv;
+
 VideoRecoder::VideoRecoder(QObject *parent) :
     QThread(parent)
 {
@@ -26,7 +34,7 @@ void VideoRecoder::startRecoder() {
 }
 
 void VideoRecoder::run(){
-    QQueue<QPixmap> queue;
+    QQueue<Mat> queue;
     while(true) {
         msleep(10); //线程休眠10ms，没10ms检测一次是否需要进行录制
         if(this->isRecord == true) {
@@ -35,24 +43,23 @@ void VideoRecoder::run(){
             // 获得LOCK才能访问buffers，以防止
             // 摄像头在采集的时候对未采集完整的数据进行处理，进行数据的同步。
             this->realTimeShow->LOCK->lock();
-            aa.append((const char *) buffers[0].start,IMAGEWIDTH*IMAGEHEIGHT);
+            aa.append((const char *) gInterfaceBuf,gLength);
+            qDebug()<<buffers[0].length;
             this->realTimeShow->LOCK->unlock();
 
             // 将数据先保存到缓存
             pix.loadFromData(aa);
 
             // 将图像保存转换为Mat1，进行图像压缩Mat2
+            Mat img = ImageConversion::QPixmapToCvMat(pix);
+            resize(img,img,Size(160,120),0,0);
 
+            // 对Mat2进行后续操作           
 
-            // 对Mat2进行后续操作 
-
-
-
-
-            queue.push_back(pix);
+            queue.push_back(img);
             qDebug() << "video recording frame " << framec;
             framec ++;
-            if (framec > 48 ) {
+            if (framec > 400 ) {
                 this->isRecord = false;
             }
 
@@ -61,12 +68,6 @@ void VideoRecoder::run(){
             qDebug() << "going to store pictures in nandflash... " ;
             framec = 0;
             while(!queue.isEmpty()) {
-                QByteArray qba; 
-                QBuffer bf(&qba);
-                QPixmap pix = queue.front();
-                pix.save(&bf,"jpg");
-                queue.pop_front(); // 从队列头部删除一张图片
-
                 // 命名图像
                 char *name = NULL;
                 QString str = QString("./img/image%1_%2.jpg").arg(prefix).arg(framec);
@@ -74,8 +75,9 @@ void VideoRecoder::run(){
                 name = str_ba.data();
 
                 // 保存图像
-                QFile fimg(name);fimg.open(QFile::WriteOnly);
-                fimg.write(qba);fimg.close();
+                Mat img = queue.front();
+                queue.pop_front();  // 从队列头部删除一张图片
+                imwrite(name,img);
                 framec++;
                 qDebug() << "storing frame ... " << framec ;
             }
