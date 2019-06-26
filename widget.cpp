@@ -29,12 +29,15 @@ Widget::Widget(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    QString theme = "background-color:rgb(237,59,88);color:rgb(255,255,255);font-size:22px;";
+    QString theme = "background-color:rgb(237,59,88);color:rgb(255,255,255);font-size:20px;";
+
     ui->open->setStyleSheet(theme);
     ui->take->setStyleSheet(theme);
     ui->close->setStyleSheet(theme);
     ui->record->setStyleSheet(theme);
     ui->replay->setStyleSheet(theme);
+
+
 
     connect(ui->open, SIGNAL(clicked()), this, SLOT(open()));
     connect(ui->take, SIGNAL(released()), this, SLOT(take()));
@@ -42,12 +45,23 @@ Widget::Widget(QWidget *parent) :
     connect(ui->record, SIGNAL(clicked()), this, SLOT(record()));
     connect(ui->replay, SIGNAL(clicked()),this,SLOT(ppt()));
 
+    powerPiont = NULL;
+    videoPlayer2 = NULL;
     realTimeShow = new RealTimeShow();
     videoRecoder = new VideoRecoder(realTimeShow);
     connect(realTimeShow,SIGNAL(sig_GetOneRealTimeFrame(QPixmap)),this,SLOT(slotGetOneRealTimePixmap(QPixmap)));
+    connect(realTimeShow,SIGNAL(sig_showlog(QString)),this,SLOT(showlog(QString)));
+    connect(realTimeShow,SIGNAL(sig_SendByteArray(QByteArray)),this,SLOT(sendByteArray(QByteArray)));
+    connect(videoRecoder,SIGNAL(sig_showlog(QString)),this,SLOT(showlog(QString)));
 
+    client = new QTcpSocket();
 
 }
+void Widget::showlog(QString str){
+
+    ui->log->setText(str);
+}
+
 // 打开摄像头并启动实时显示
 void Widget::open(){
     ui->close->setVisible(true);
@@ -55,6 +69,8 @@ void Widget::open(){
     ui->open->setVisible(false);
     ui->label1->setVisible(true);
 
+
+    client->connectToHost("192.168.1.20",10086);
     // 打开摄像头
     qDebug() << "open camera";
     v4l2_init();
@@ -62,10 +78,14 @@ void Widget::open(){
     v4l2_mem_ops();
     qDebug() << "v4l2 memory opreations...";
 
+    showlog(QString("camera open successfully ... "));
+
     // 启动实时显示
     realTimeShow->RTShow();
     // 启动录制任务，但不在录制，当按下record按钮时，会进行录制。
     videoRecoder->startRecoder();
+
+
 }
 
 // 更新录制标志
@@ -82,6 +102,7 @@ void Widget::ppt(){
     this->realTimeShow->isReplay = true;
     powerPiont = new PowerPiont(videoRecoder,realTimeShow);
     connect(powerPiont,SIGNAL(sig_GetOnePicture(QPixmap)),this,SLOT(slotGetOneRealTimePixmap(QPixmap)));
+    connect(powerPiont,SIGNAL(sig_showlog(QString)),this,SLOT(showlog(QString)));
     // 开启这个powerPiont线程
     powerPiont->startPlay();
 }
@@ -94,6 +115,11 @@ Widget::~Widget() {
 // 当界面上的take按钮被按下时触发这个槽函数
 // 直接在该widget线程里面保存并显示缩略图到label2上
 void Widget::take(){
+//      videoPlayer2 = new VideoPlayer2("/video/image2video.avi");
+//      this->realTimeShow->isReplay = false;
+//      connect(videoPlayer2,SIGNAL(sig_GetOneFrame(QImage)),this,SLOT(slotImage(QImage)));
+//      videoPlayer2->startPlay();
+
 
     QDateTime current_date_time = QDateTime::currentDateTime();
     QString current_date =current_date_time.toString("yyyy.MM.dd hh:mm:ss");
@@ -116,6 +142,7 @@ void Widget::take(){
     str.append(".jpg");
     QByteArray str_ba = str.toLatin1();
     name = str_ba.data();
+    showlog(str);
 
     // 使用pix的save函数将采集的图片保存到Qbuffer缓存中
     QByteArray qba;
@@ -130,19 +157,61 @@ void Widget::take(){
     fimg.open(QFile::WriteOnly);
     fimg.write(qba);
     fimg.close();
+
+    int length = 0;
+    if ( (length = client->write(qba)) == -1) {
+        client->close();
+        showlog(QString("reconnect to server!"));
+        client->connectToHost("192.168.1.20",10086);
+    } else {
+        showlog(QString("send success! %1/%2").arg(length).arg(qba.size()));
+    }
+
+
 }
 
 // 关闭资源，释放申请的内存
 void Widget::close(){
+//    showlog(QString("exit program"));
     ui->take->setVisible(false);
     ui->open->setVisible(true);
     ui->label1->setVisible(false);
     ui->close->setVisible(false);
+
+    videoRecoder->isContinue = false;
+    videoRecoder->wait();
+
+    realTimeShow->isContinue = false;
+    realTimeShow->wait();
+
+    if ( powerPiont != NULL) {
+        powerPiont->isContinue = false;
+        powerPiont->wait();
+    }
+
     v4l2_release();
     exit(0);
+}
+void Widget::sendByteArray(QByteArray qba) {
+    if(client->isValid()) {
+        client->connectToHost("192.168.1.20",10086);
+        showlog(QString("reconnet to the server"));
+        return ;
+    }
+    int length = 0;
+    if ( (length = client->write(qba)) == -1) {
+        showlog(QString("send faild!"));
+    } else {
+        showlog(QString("send success! %1").arg(length));
+    }
 }
 
 // 在label1上显示一张图片的槽函数
 void Widget::slotGetOneRealTimePixmap(QPixmap pix) {
+
     ui->label1->setPixmap(pix);
+}
+void Widget::slotImage(QImage image) {
+    QPixmap pix;
+    ui->label1->setPixmap(pix.fromImage(image));
 }

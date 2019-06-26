@@ -11,8 +11,8 @@ extern "C" {
 #define FILE_VIDEO      "/dev/video0"
 #define IMAGE           "./img/demo"
 
-#define IMAGEWIDTH      648
-#define IMAGEHEIGHT     480
+#define IMAGEWIDTH      160
+#define IMAGEHEIGHT     120
 
 #define FRAME_NUM       1  //4
 

@@ -5,10 +5,14 @@
 #include <QWidget>
 #include <QTimer>
 #include <QImage>
+#include <QString>
 
 #include "realtimeshow.h"
 #include "videorecoder.h"
 #include "powerpiont.h"
+#include "videoplayer2.h"
+
+#include <QTcpSocket>
 
 /*extern "C"
 {
@@ -41,13 +45,19 @@ private slots:
     void close();
     void record();
     void ppt();
+    void showlog(QString);
     void slotGetOneRealTimePixmap(QPixmap);
+    void sendByteArray(QByteArray);
+    void slotImage(QImage);
 
 private :
     Ui::Widget *ui;
     RealTimeShow *realTimeShow;
     VideoRecoder *videoRecoder;
     PowerPiont *powerPiont;
+
+    VideoPlayer2 *videoPlayer2;
+    QTcpSocket *client;
 };
 
 #endif // WIDGET_H

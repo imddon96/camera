@@ -4,6 +4,7 @@
 #include <QThread>
 #include <QPixmap>
 #include <QMutex>
+#include <QString>
 
 class RealTimeShow : public QThread
 {
@@ -14,10 +15,14 @@ public:
     void RTShow();
 
     volatile bool isReplay;
+    volatile bool isContinue;
+
     QMutex *LOCK;
 
 signals:
     void sig_GetOneRealTimeFrame(QPixmap);
+    void sig_showlog(QString);
+    void sig_SendByteArray(QByteArray);
 public slots:
 
 protected:

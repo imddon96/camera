@@ -6,6 +6,7 @@ RealTimeShow::RealTimeShow(QObject *parent) :
     QThread(parent)
 {
     this->isReplay = false;
+    this->isContinue = true;
     LOCK = new QMutex();
 }
 
@@ -19,9 +20,11 @@ void RealTimeShow::RTShow(){
 
 void RealTimeShow::run(){
    while(1) {
-       msleep(15); // 每15ms执行一次图像采集，并将图像发送到widget显示。
+       msleep(10); // 每15ms执行一次图像采集，并将图像发送到widget显示。
+       if (!isContinue) {
+           break;
+       }
        if (!isReplay){
-//           qDebug() << "real time simple... in thread " << QThread::currentThreadId();
            LOCK->lock();
            v4l2_frame_process();
            LOCK->unlock();
@@ -33,4 +36,5 @@ void RealTimeShow::run(){
            emit sig_GetOneRealTimeFrame(pix);
        }
    }
+    qDebug() << "Exit real time show thread.";
 }

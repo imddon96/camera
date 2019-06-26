@@ -3,6 +3,7 @@
 #include "realtimeshow.h"
 #include <QThread>
 #include <QPixmap>
+#include <QString>
 
 class VideoRecoder : public QThread
 {
@@ -19,8 +20,9 @@ public:
     int framec;
     int prefixNew;
     volatile bool isRecord; // VideoRecoder需要录制或者在录制的标志
+    volatile bool isContinue;
 signals:
-
+    void sig_showlog(QString);
 public slots:
 protected:
     void run();

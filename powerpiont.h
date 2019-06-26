@@ -13,8 +13,10 @@ public:
     explicit PowerPiont(QObject *parent = 0);
     PowerPiont(VideoRecoder *videoRecoder,RealTimeShow *realTimeShow);
     void startPlay();
+    volatile bool isContinue;
 signals:
     void sig_GetOnePicture(QPixmap);
+    void sig_showlog(QString);
 public slots:
 
 protected:
